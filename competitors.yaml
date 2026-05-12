@@ -1,0 +1,38 @@
+# Competitor catalog scraping config.
+# backend: shopify_json | html_sitemap
+# - shopify_json uses /products.json (public Shopify endpoint, paginated)
+# - html_sitemap walks sitemap.xml and parses product pages with provided selectors
+# Set backend to html_sitemap only when shopify_json returns 404/empty.
+
+competitors:
+  - name: Freshly Cosmetics
+    domain: freshlycosmetics.com
+    backend: shopify_json
+  - name: Cocunat
+    domain: cocunat.com
+    backend: shopify_json
+  - name: Yepoda
+    domain: yepoda.com
+    backend: shopify_json
+  - name: Saigu Cosmetics
+    domain: saigucosmetics.com
+    backend: shopify_json
+  - name: Alma Secret
+    domain: almasecret.com
+    backend: shopify_json
+  - name: Sibari Republic
+    domain: sibarirepublic.com
+    backend: shopify_json
+  - name: Singuladerm
+    domain: singuladerm.com
+    backend: shopify_json
+  - name: Bella Aurora
+    domain: bellaaurora.com
+    backend: shopify_json
+
+# Per-request etiquette.
+http:
+  user_agent: "lico-competitor-research/1.0 (+contact: marketing@licocosmetics.com)"
+  delay_seconds: 1.5
+  timeout_seconds: 20
+  max_retries: 3
