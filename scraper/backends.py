@@ -120,8 +120,12 @@ def shopify_json(
         except requests.RequestException as e:
             log.warning("%s page %d failed: %s", domain, page, e)
             break
-        data = r.json()
-        products = data.get("products", [])
+        try:
+            data = r.json()
+        except ValueError as e:
+            log.warning("%s page %d returned non-JSON (likely HTML): %s", domain, page, e)
+            break
+        products = data.get("products", []) if isinstance(data, dict) else []
         if not products:
             break
         for p in products:
