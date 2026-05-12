@@ -5,9 +5,7 @@
 # Set backend to html_sitemap only when shopify_json returns 404/empty.
 
 competitors:
-  - name: Freshly Cosmetics
-    domain: freshlycosmetics.com
-    backend: shopify_json
+  # Shopify-confirmed (working via /products.json):
   - name: Cocunat
     domain: cocunat.com
     backend: shopify_json
@@ -17,18 +15,28 @@ competitors:
   - name: Saigu Cosmetics
     domain: saigucosmetics.com
     backend: shopify_json
+
+  # /products.json disabled or non-Shopify — try sitemap crawl as fallback:
+  - name: Freshly Cosmetics
+    domain: freshlycosmetics.com
+    backend: html_sitemap
+    product_url_pattern: /productos/
   - name: Alma Secret
     domain: almasecret.com
-    backend: shopify_json
+    backend: html_sitemap
+    product_url_pattern: /products/
   - name: Sibari Republic
     domain: sibarirepublic.com
-    backend: shopify_json
+    backend: html_sitemap
+    product_url_pattern: /products/
   - name: Singuladerm
     domain: singuladerm.com
-    backend: shopify_json
+    backend: html_sitemap
+    product_url_pattern: /product
   - name: Bella Aurora
     domain: bellaaurora.com
-    backend: shopify_json
+    backend: html_sitemap
+    product_url_pattern: /product
 
 # Per-request etiquette.
 http:

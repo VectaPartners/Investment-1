@@ -45,8 +45,10 @@ def scrape_one(competitor: dict[str, Any], http_cfg: dict[str, Any]) -> Iterator
         "delay": http_cfg["delay_seconds"],
         "timeout": http_cfg["timeout_seconds"],
     }
-    if competitor.get("products_url"):
-        backend_kwargs["products_url"] = competitor["products_url"]
+    reserved = {"name", "domain", "backend"}
+    for key, value in competitor.items():
+        if key not in reserved and key not in backend_kwargs:
+            backend_kwargs[key] = value
     raw = backend_fn(**backend_kwargs)
     for product in raw:
         cls = classify(
