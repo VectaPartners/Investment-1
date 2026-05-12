@@ -48,18 +48,37 @@ def _get(session: requests.Session, url: str, timeout: int) -> requests.Response
     return r
 
 
+def _discover_shopify_base(session: requests.Session, domain: str, timeout: int) -> str:
+    """Resolve the canonical /products.json URL by following redirects once
+    without pagination params, then stripping any server-injected query.
+    Many ES Shopify stores localize /products.json -> /es/productos.json
+    and chain a second redirect that mangles a re-appended query string.
+    """
+    probe = f"https://{domain}/products.json"
+    try:
+        r = session.get(probe, timeout=timeout, allow_redirects=True)
+        final = r.url.split("?")[0]
+        log.info("discovered base for %s: %s", domain, final)
+        return final
+    except requests.RequestException as e:
+        log.warning("base discovery failed for %s, using default: %s", domain, e)
+        return probe
+
+
 def shopify_json(
     brand: str,
     domain: str,
     user_agent: str,
     delay: float,
     timeout: int,
+    products_url: str | None = None,
 ) -> Iterator[dict[str, Any]]:
     session = _session(user_agent)
+    base = (products_url.split("?")[0] if products_url else _discover_shopify_base(session, domain, timeout))
     page = 1
     seen = 0
     while True:
-        url = f"https://{domain}/products.json?limit=250&page={page}"
+        url = f"{base}?limit=250&page={page}"
         log.info("GET %s", url)
         try:
             r = _get(session, url, timeout)

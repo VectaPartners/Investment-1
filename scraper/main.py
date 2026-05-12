@@ -38,13 +38,16 @@ def scrape_one(competitor: dict[str, Any], http_cfg: dict[str, Any]) -> Iterator
     backend_fn = getattr(backends, backend_name, None)
     if backend_fn is None:
         raise ValueError(f"unknown backend: {backend_name}")
-    raw = backend_fn(
-        brand=competitor["name"],
-        domain=competitor["domain"],
-        user_agent=http_cfg["user_agent"],
-        delay=http_cfg["delay_seconds"],
-        timeout=http_cfg["timeout_seconds"],
-    )
+    backend_kwargs: dict[str, Any] = {
+        "brand": competitor["name"],
+        "domain": competitor["domain"],
+        "user_agent": http_cfg["user_agent"],
+        "delay": http_cfg["delay_seconds"],
+        "timeout": http_cfg["timeout_seconds"],
+    }
+    if competitor.get("products_url"):
+        backend_kwargs["products_url"] = competitor["products_url"]
+    raw = backend_fn(**backend_kwargs)
     for product in raw:
         cls = classify(
             title=product.get("title", ""),
