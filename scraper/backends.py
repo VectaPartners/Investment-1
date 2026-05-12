@@ -48,21 +48,53 @@ def _get(session: requests.Session, url: str, timeout: int) -> requests.Response
     return r
 
 
-def _discover_shopify_base(session: requests.Session, domain: str, timeout: int) -> str:
-    """Resolve the canonical /products.json URL by following redirects once
-    without pagination params, then stripping any server-injected query.
-    Many ES Shopify stores localize /products.json -> /es/productos.json
-    and chain a second redirect that mangles a re-appended query string.
-    """
-    probe = f"https://{domain}/products.json"
+def _candidate_urls(domain: str, products_url: str | None) -> list[str]:
+    """Endpoints to probe in order, deduplicated."""
+    candidates: list[str] = []
+    if products_url:
+        candidates.append(products_url.split("?")[0])
+    bare = domain.removeprefix("www.")
+    candidates += [
+        f"https://{bare}/products.json",
+        f"https://www.{bare}/products.json",
+        f"https://{bare}/collections/all/products.json",
+        f"https://www.{bare}/collections/all/products.json",
+        f"https://{bare}/es/products.json",
+        f"https://www.{bare}/es/products.json",
+    ]
+    seen: set[str] = set()
+    unique: list[str] = []
+    for c in candidates:
+        if c not in seen:
+            seen.add(c)
+            unique.append(c)
+    return unique
+
+
+def _probe(session: requests.Session, url: str, timeout: int) -> bool:
+    """Returns True if URL returns 200 with JSON containing a 'products' key."""
     try:
-        r = session.get(probe, timeout=timeout, allow_redirects=True)
-        final = r.url.split("?")[0]
-        log.info("discovered base for %s: %s", domain, final)
-        return final
-    except requests.RequestException as e:
-        log.warning("base discovery failed for %s, using default: %s", domain, e)
-        return probe
+        r = session.get(f"{url}?limit=1", timeout=timeout, allow_redirects=False)
+    except requests.RequestException:
+        return False
+    if r.status_code != 200:
+        return False
+    try:
+        data = r.json()
+    except ValueError:
+        return False
+    return isinstance(data, dict) and "products" in data
+
+
+def _discover_shopify_base(
+    session: requests.Session, domain: str, timeout: int, products_url: str | None
+) -> str | None:
+    for candidate in _candidate_urls(domain, products_url):
+        if _probe(session, candidate, timeout):
+            log.info("found working endpoint for %s: %s", domain, candidate)
+            return candidate
+        log.debug("probe failed for %s", candidate)
+    return None
 
 
 def shopify_json(
@@ -74,7 +106,10 @@ def shopify_json(
     products_url: str | None = None,
 ) -> Iterator[dict[str, Any]]:
     session = _session(user_agent)
-    base = (products_url.split("?")[0] if products_url else _discover_shopify_base(session, domain, timeout))
+    base = _discover_shopify_base(session, domain, timeout, products_url)
+    if not base:
+        log.error("no working /products.json endpoint for %s; consider html_sitemap backend", domain)
+        return
     page = 1
     seen = 0
     while True:

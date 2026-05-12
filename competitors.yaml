@@ -8,8 +8,6 @@ competitors:
   - name: Freshly Cosmetics
     domain: freshlycosmetics.com
     backend: shopify_json
-    # ES storefront localizes /products.json -> /es/productos.json; pin canonical to avoid redirect mangling
-    products_url: https://www.freshlycosmetics.com/es/productos.json
   - name: Cocunat
     domain: cocunat.com
     backend: shopify_json
